@@ -83,13 +83,10 @@ quarter <- ncvar_get(
 names <-
   paste(
     "LandsatKelp_Quarterly_area",
-    year[year >= 2003],
-    quarter[year >= 2003],
+    year,
+    quarter,
     sep = "_"
   )
-
-# Create a matrix of years we want, where each column is one quarter of data ---
-kelp_extracted <- area[, year >= 2003]
 
 # Create a raster brick of quarter-year kelp area ------------------------------
 # For reasonns I don't undersantd, they report their data on a non-standard
@@ -102,16 +99,26 @@ kelp_extracted <- area[, year >= 2003]
 
 k <- rasterize(x = coords,
                y = base_grid,
-               field = kelp_extracted,
+               field = area,
                fun = sum,
                na.rm = T)
 names(k) <- names
 
+na_filter <- function(x, ...) {
+  ifelse((mean(is.na(x)) < 0.25), 1, NA)
+}
+
+nas <- rasterize(x = coords,
+                 y = base_grid,
+                 field = area,
+                 fun = na_filter)
+
+area_without_na <- k * nas
 
 ## EXPORT ######################################################################
 # Export all the rasters, one per quarter --------------------------------------
 writeRaster(
-  x = k,
+  x = area_without_na,
   bylayer = T,
   filename = here::here(
     "data",
